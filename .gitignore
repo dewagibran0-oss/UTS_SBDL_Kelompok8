@@ -1,0 +1,13 @@
+# Mengabaikan hasil compile Java
+bin/
+*.class
+
+# Mengabaikan settingan lokal IDE Eclipse
+.settings/
+.metadata/
+
+# Mengabaikan file database lokal agar tidak konflik saat commit antar anggota
+*.db4o
+
+# Mengabaikan file log atau temporary
+*.log

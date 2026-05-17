@@ -1,0 +1,140 @@
+#### I. QUERY-BY-EXAMPLE (QBE)
+
+Metode: Memberikan objek prototipe sebagai contoh pencarian.
+
+1. SELECT ALL CENTERS
+ Code: `db.queryByExample(EBusinessCenter.class);`
+ Goal: Mengambil semua objek EBusinessCenter.
+ Expected: List berisi "Global Catalog".
+ Return: Mengembalikan koleksi semua objek dalam kelas tersebut.
+
+
+2. SELECT BY AVAILABILITY
+ Code: `new Infrastructure(null, null, 0.999f);`
+ Goal: Mencari sistem dengan ketersediaan 99.9%.
+ Expected: Menemukan "Clustered Servers".
+ Return: Objek Infrastructure yang field ketersediaannya cocok.
+
+
+3. SELECT BY INVESTMENT
+ Code: `new UpgradeProposal(null, null, 25000f, 0f);`
+ Goal: Mencari proposal dengan biaya $25,000.
+ Expected: Mengembalikan objek UpgradeProposal vendor.
+ Return: Objek dengan nilai monthlyInvestment yang sesuai.
+
+
+4. UPDATE (Downtime Cost)
+ Code: `ebc.setHourlyDowntimeCost(95000f); db.store(ebc);`
+ Goal: Mengubah data biaya kerugian per jam.
+ Expected: Data tersimpan secara permanen dengan nilai baru.
+ Return: Nilai di database berubah dari 90k menjadi 95k.
+
+
+5. SELECT BY CLASS (Vendor)
+ Code: `db.queryByExample(Vendor.class);`
+ Goal: Mengambil semua data dari kelas Vendor.
+ Expected: Daftar vendor mitra yang menawarkan upgrade.
+ Return: List Vendor (kosong jika belum ada data vendor yang di-store).
+
+
+6. DELETE (Proposal)
+ Code: `db.delete(proposalObject);`
+ Goal: Menghapus data proposal dari database.
+ Expected: Objek hilang dari file .db4o.
+ Return: Pencarian selanjutnya pada objek ini akan menghasilkan nol.
+
+
+
+---
+
+#### II. NATIVE QUERIES (NQ)
+
+Metode: Menggunakan logika Java murni (Predicate) yang type-safe.
+
+1. SELECT.. WHERE (Type)
+ Code: `return "Catalog Sales".equals(ebc.getBusinessType());`
+ Goal: Filter organisasi bertipe "Catalog Sales".
+ Expected: Menampilkan Global Catalog.
+ Return: Koleksi objek yang memenuhi syarat String.
+
+
+2. SELECT.. WITH RANGE (Budget)
+ Code: `return up.getMonthlyInvestment() < 30000f;`
+ Goal: Mencari proposal di bawah budget $30k.
+ Expected: Menampilkan proposal $25k.
+ Return: Objek dengan nilai numerik di bawah batas.
+
+
+3. SELECT.. WHERE (Exact Match)
+ Code: `return inf.getCurrentAvailability() == 0.999f;`
+ Goal: Identifikasi sistem yang belum di-upgrade.
+ Expected: Menampilkan infrastruktur lama.
+ Return: Objek dengan ketersediaan tepat 99.9%.
+
+
+4. SELECT.. WITH RANGE (High Risk)
+ Code: `return ebc.getHourlyDowntimeCost() >= 90000f;`
+ Goal: Mencari bisnis dengan risiko kerugian tinggi.
+ Expected: Menampilkan unit bisnis prioritas.
+ Return: Objek dengan biaya >= 90k.
+
+
+5. SELECT.. LOGIC AND
+ Code: `return inf.getCurrentAvailability() < 1.0f && inf.getServerConfig().contains("Clustered");`
+ Goal: Mencari infra cluster yang masih memiliki downtime.
+ Expected: Infrastruktur saat ini (99.9%).
+ Return: Objek yang memenuhi dua kriteria sekaligus.
+
+
+6. SELECT.. WHERE (Prefix Search)
+ Code: `return ebc.getName().startsWith("Global");`
+ Goal: Mencari nama organisasi berawalan "Global".
+ Expected: Menemukan "Global Catalog".
+ Return: Hasil pencarian substring pada nama.
+
+
+
+---
+
+#### III. SODA QUERIES (Simple Object Database Access)
+
+Metode: Navigasi grafik objek (Low-level API).
+
+1. SELECT.. WHERE (Cost > 50k)
+ Code: `q.descend("hourlyDowntimeCost").constrain(50000f).greater();`
+ Graph: [Root] -> [EBusinessCenter] -> [hourlyDowntimeCost] -> [>50000]
+ Result: Menampilkan data center dengan biaya downtime tinggi.
+
+
+2. SELECT.. WHERE NOT
+ Code: `q.descend("serverConfig").constrain("Single Server").not();`
+ Graph: [Root] -> [Infra] -> [serverConfig] -> [NOT "Single Server"]
+ Result: Menampilkan sistem yang redundant (Clustered).
+
+
+3. SELECT.. WITH AND (AND Logic)
+ Code: `Constraint c = q.descend("monthlyInvestment").constrain(25000f); q.descend("targetAvailability").constrain(0.9999f).and(c);`
+ Graph: [Root] -> [Proposal] -> [Invest=25k] AND [Target=99.99%]
+ Result: Filter spesifik untuk analisis investasi.
+
+
+4. SELECT.. WITH OR (OR Logic)
+ Code: `Constraint c = q.descend("currentAvailability").constrain(0.999f); q.descend("currentAvailability").constrain(0.9999f).or(c);`
+ Graph: [Root] -> [Infra] -> [99.9%] OR [99.99%]
+ Result: Menampilkan semua data ketersediaan kritikal.
+
+
+5. SORTING (Descending Name)
+ Code: `q.descend("name").orderDescending();`
+ Graph: [Root] -> [EBusinessCenter] -> [Name] -> [ORDER: DESC]
+ Result: Daftar nama pusat bisnis urut Z ke A.
+
+
+6. SELECT.. WHERE (String LIKE)
+ Code: `q.descend("name").constrain("Catalog").like();`
+ Graph: [Root] -> [EBusinessCenter] -> [Name] -> [CONTAINS "Catalog"]
+ Result: Pencarian fleksibel untuk nama yang mengandung kata "Catalog".
+
+
+
+---
